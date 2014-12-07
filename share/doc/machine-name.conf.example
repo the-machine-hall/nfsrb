@@ -1,0 +1,21 @@
+# machine-name.conf
+
+_hostname="mymachine"
+_domain="mydomain"
+_ipAddress="127.0.0.1"
+
+_nfsServerAddress="127.0.0.1"
+_bootNetworkInterface="iface0"
+
+_downloadMirror="http://openbsd-mirror.domain.tld/path/to/openbsd/"
+_openbsdVersion="5.6"
+_openbsdPlatform="platform"
+
+_basePath="/export/openbsd/${_openbsdVersion}/${_openbsdPlatform}/${_hostname}"
+
+_distributionSetsToDownload=( base
+                              etc
+                              man )
+
+_kernelToUse="kernel"
+
