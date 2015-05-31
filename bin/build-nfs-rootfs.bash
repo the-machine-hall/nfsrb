@@ -183,7 +183,7 @@ if test $_openbsdVersionNonDotted -ge $_minimumOpenbsdVersionNonDotted && \
 		# check validity
 		if ! isValidFileForSignify "$_openbsdVersionNonDotted" "$_signatureFile" "$_fileName"; then
 			echo "\`${_fileName}' is invalid."
-			_invalidFiles=$true
+			_invalidFiles=$_true
 		else
 			echo "\`${_fileName}' is valid."
 		fi
@@ -191,7 +191,7 @@ if test $_openbsdVersionNonDotted -ge $_minimumOpenbsdVersionNonDotted && \
 	
 	if ! isValidFileForSignify "$_openbsdVersionNonDotted" "$_signatureFile" "$_kernelToUse"; then
 		echo "\`${_kernelToUse}' is invalid."
-		_invalidFiles=$true
+		_invalidFiles=$_true
 	else
 		echo "\`${_kernelToUse}' is valid."
 	fi
