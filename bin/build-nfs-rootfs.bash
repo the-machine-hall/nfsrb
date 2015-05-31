@@ -4,7 +4,7 @@
 
 :<<COPYRIGHT
 
-Copyright (C) 2014 Frank Scheiner
+Copyright (C) 2014-2015 Frank Scheiner
 
 The program is distributed under the terms of the GNU General Public License
 
