@@ -29,7 +29,7 @@ COPYRIGHT
 
 readonly _program="build-nfs-root"
 
-readonly _version="0.3.0"
+readonly _version="0.4.0"
 
 readonly _exit_usage=64
 
@@ -99,9 +99,24 @@ downloadFileWithWget()
 }
 
 
+downloadFileWithFtp()
+{
+	local _file="$1"
+
+	ftp -C "$_file"
+
+	return
+}
+
+
 downloadFile()
 {
-	downloadFileWithWget $@
+	if which wget &>/dev/null; then
+
+		downloadFileWithWget $@
+	else
+		downloadFileWithFtp $@
+	fi
 }
 
 
