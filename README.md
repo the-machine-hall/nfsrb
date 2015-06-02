@@ -7,7 +7,6 @@ The tools in this repo allow to create NFS root file systems for OpenBSD from an
 In addition to a default OpenBSD installation you need:
 
 * bash
-* wget
 
 ## How to use ##
 
