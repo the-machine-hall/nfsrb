@@ -8,14 +8,14 @@ _nfsServerAddress="127.0.0.1"
 _bootNetworkInterface="iface0"
 
 _downloadMirror="http://openbsd-mirror.domain.tld/path/to/openbsd/"
-_openbsdVersion="5.6"
-_openbsdPlatform="platform"
+_openBsdVersion="5.6"
+_openBsdPlatform="platform"
 
-_basePath="/export/openbsd/${_openbsdVersion}/${_openbsdPlatform}/${_hostname}"
+_basePath="/export/openbsd/${_openBsdVersion}/${_openBsdPlatform}/${_hostname}"
 
-_distributionSetsToDownload=( base
-                              etc
-                              man )
+_additionalSetsToDownload=( base
+                            etc
+                            man )
 
 _kernelToUse="kernel"
 

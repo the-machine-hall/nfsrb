@@ -29,12 +29,17 @@ COPYRIGHT
 
 readonly _program="build-nfs-root"
 
-readonly _version="0.4.0"
+readonly _version="0.5.0"
 
 readonly _exit_usage=64
 
 readonly _true=1
 readonly _false=0
+
+readonly _openBsdDefaultSets=( base
+                               etc )
+
+readonly _openBsdDefaultSetsSince57=( base )
 
 ################################################################################
 # FUNCTIONS
@@ -52,11 +57,11 @@ usageMsg()
 
 isValidFileForSignify()
 {
-	local _openbsdVersionNonDotted="$1"
+	local _openBsdVersionNonDotted="$1"
 	local _signatureFile="$2"
 	local _file="$3"
 	
-	if signify -C -p "/etc/signify/openbsd-${_openbsdVersionNonDotted}-base.pub" \
+	if signify -C -p "/etc/signify/openbsd-${_openBsdVersionNonDotted}-base.pub" \
 	           -x "$_signatureFile" "$_file" &>/dev/null; then
 	
 		return 0
@@ -125,6 +130,7 @@ downloadFile()
 ################################################################################
 
 if [[ $1 == "" ]]; then
+
 	usageMsg
 	exit $_exit_usage
 fi
@@ -134,10 +140,10 @@ _configurationFile="$1"
 . "$_configurationFile"
 
 
-_openbsdVersionNonDotted=${_openbsdVersion/./} # "55"
+_openBsdVersionNonDotted=${_openBsdVersion/./} # "55"
 
 # Minimum OpenBSD version with signify support for downloads
-_minimumOpenbsdVersionNonDotted="55"
+_minimumOpenBsdVersionNonDotted="55"
 
 # Signature file name
 _signatureFile="SHA256.sig"
@@ -145,17 +151,24 @@ _signatureFile="SHA256.sig"
 # File containing the hashes
 _hashFile="SHA256"
 
+# Combine default and additional sets
+if [[ $_openBsdVersionNonDotted -lt 57 ]]; then
 
-_downloadBasePath="${_downloadMirror}/${_openbsdVersion}/${_openbsdPlatform}"
+	_setsToDownload=( "${_openBsdDefaultSets[@]}" "${_additionalSetsToDownload[@]}" )
+else
+	_setsToDownload=( "${_openBsdDefaultSetsSince57[@]}" "${_additionalSetsToDownload[@]}" )
+fi
+
+_downloadBasePath="${_downloadMirror}/${_openBsdVersion}/${_openBsdPlatform}"
 
 # Save files in the super directory
 mkdir -p "$_basePath" && cd "$_basePath/.."
 
 echo "Now downloading files..."
 
-for _set in "${_distributionSetsToDownload[@]}"; do
+for _set in "${_setsToDownload[@]}"; do
 
-	_fileName="${_set}${_openbsdVersionNonDotted}.tgz"
+	_fileName="${_set}${_openBsdVersionNonDotted}.tgz"
 	
 	_file="${_downloadBasePath}/${_fileName}"
 
@@ -173,15 +186,11 @@ done
 	downloadFile "${_downloadBasePath}/${_kernelToUse}"
 #fi
 
-#echo "Now downloading files..."
-
-#wait
-
 echo "Finished."
 
 # Perform validity and signature test only, if files are from OpenBSD 5.5 or
 # newer and if the signify tool is available.
-if test $_openbsdVersionNonDotted -ge $_minimumOpenbsdVersionNonDotted && \
+if test $_openBsdVersionNonDotted -ge $_minimumOpenBsdVersionNonDotted && \
    which signify &>/dev/null; then
 
 	downloadFile "${_downloadBasePath}/${_signatureFile}"
@@ -189,14 +198,15 @@ if test $_openbsdVersionNonDotted -ge $_minimumOpenbsdVersionNonDotted && \
 	_invalidFiles=$false
 
 	echo "Checking validity of files with signify..."
-	for _set in "${_distributionSetsToDownload[@]}"; do
+	for _set in "${_setsToDownload[@]}"; do
 	
-		_fileName="${_set}${_openbsdVersionNonDotted}.tgz"
+		_fileName="${_set}${_openBsdVersionNonDotted}.tgz"
 
 		_file="${_downloadBasePath}/${_fileName}"
 		
 		# check validity
-		if ! isValidFileForSignify "$_openbsdVersionNonDotted" "$_signatureFile" "$_fileName"; then
+		if ! isValidFileForSignify "$_openBsdVersionNonDotted" "$_signatureFile" "$_fileName"; then
+
 			echo "\`${_fileName}' is invalid."
 			_invalidFiles=$_true
 		else
@@ -204,7 +214,8 @@ if test $_openbsdVersionNonDotted -ge $_minimumOpenbsdVersionNonDotted && \
 		fi
 	done
 	
-	if ! isValidFileForSignify "$_openbsdVersionNonDotted" "$_signatureFile" "$_kernelToUse"; then
+	if ! isValidFileForSignify "$_openBsdVersionNonDotted" "$_signatureFile" "$_kernelToUse"; then
+
 		echo "\`${_kernelToUse}' is invalid."
 		_invalidFiles=$_true
 	else
@@ -214,6 +225,7 @@ if test $_openbsdVersionNonDotted -ge $_minimumOpenbsdVersionNonDotted && \
 	echo "Finished."
 	
 	if [[ $_invalidFiles -eq $_true ]]; then
+
 		echo "Detected invalid files. Cannot continue. Please delete invalid file(s) and try again."
 		exit 1
 	fi
@@ -224,14 +236,15 @@ else
 	_invalidFiles=$false
 	
 	echo "Checking validity of files with sha256..."
-	for _set in "${_distributionSetsToDownload[@]}"; do
+	for _set in "${_setsToDownload[@]}"; do
 	
-		_fileName="${_set}${_openbsdVersionNonDotted}.tgz"
+		_fileName="${_set}${_openBsdVersionNonDotted}.tgz"
 
 		_file="${_downloadBasePath}/${_fileName}"
 		
 		# check validity
 		if ! isValidFileForSha256 "$_hashFile" "$_fileName"; then
+
 			echo "\`${_fileName}' is invalid."
 			_invalidFiles=$_true
 		else
@@ -240,6 +253,7 @@ else
 	done
 	
 	if ! isValidFileForSha256 "$_hashFile" "$_kernelToUse"; then
+
 		echo "\`${_kernelToUse}' is invalid."
 		_invalidFiles=$_true
 	else
@@ -249,6 +263,7 @@ else
 	echo "Finished."
 	
 	if [[ $_invalidFiles -eq $_true ]]; then
+
 		echo "Detected invalid files. Cannot continue. Please delete invalid file(s) and try again."
 		exit 1
 	fi
@@ -264,11 +279,25 @@ dd if=/dev/zero of=swap bs=1M seek=128 count=0 2>/dev/null
 echo "Finished."
 
 mkdir -p "root" && cd "root"
-for _set in "${_distributionSetsToDownload[@]}"; do
-	echo -n "Now extracting ${_set}${_openbsdVersionNonDotted}.tgz... "
-	tar -xzpf ../../${_set}${_openbsdVersionNonDotted}.tgz
+if [[ $_openBsdVersionNonDotted -lt 57 ]]; then
+
+	for _set in "${_setsToDownload[@]}"; do
+
+		echo -n "Now extracting ${_set}${_openBsdVersionNonDotted}.tgz... "
+		tar -xzpf ../../${_set}${_openBsdVersionNonDotted}.tgz
+		echo "OK"
+	done
+else
+	for _set in "${_setsToDownload[@]}"; do
+
+                echo -n "Now extracting ${_set}${_openBsdVersionNonDotted}.tgz... "
+                tar -xzpf ../../${_set}${_openBsdVersionNonDotted}.tgz
+                echo "OK"
+        done
+	echo -n "Now extracting builtin etc.tgz... "
+	tar -xzpf ./usr/share/sysmerge/etc.tgz
 	echo "OK"
-done
+fi
 cd ..
 
 
@@ -324,7 +353,7 @@ fi
 echo "OK"
 
 echo -n "Placing OpenBSD version number in \`${_rootOfFileSystem}/etc/openbsd_version'... "
-echo "$_openbsdVersion" > "$_rootOfFileSystem/etc/openbsd_version"
+echo "$_openBsdVersion" > "$_rootOfFileSystem/etc/openbsd_version"
 echo "OK"
 
 exit

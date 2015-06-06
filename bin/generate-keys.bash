@@ -4,7 +4,7 @@
 
 :<<COPYRIGHT
 
-Copyright (C) 2014 Frank Scheiner
+Copyright (C) 2014-2015 Frank Scheiner
 
 The program is distributed under the terms of the GNU General Public License
 
@@ -29,7 +29,7 @@ COPYRIGHT
 
 readonly _program="generate-keys"
 
-readonly _version="0.1.0"
+readonly _version="0.2.0"
 
 readonly _exit_usage=64
 
@@ -100,8 +100,10 @@ getOpensshKeyTypes()
                                    ecdsa
                                    ed25519
                                    rsa )
-                              
+
 	local _opensshKeyTypes56=( "${_opensshKeyTypes55[@]}" )
+
+	local _opensshKeyTypes57=( "${_opensshKeyTypes56[@]}" )
 
 	if [[ $_openbsdVersionNonDotted -eq 54 ]]; then
 	
@@ -114,6 +116,10 @@ getOpensshKeyTypes()
 	elif [[ $_openbsdVersionNonDotted -eq 56 ]]; then
 	
 		_opensshKeyTypes=( "${_opensshKeyTypes56[@]}" )
+
+	elif [[ $_openbsdVersionNonDotted -eq 57 ]]; then
+	
+		_opensshKeyTypes=( "${_opensshKeyTypes57[@]}" )
 	else
 		return 1
 	fi
