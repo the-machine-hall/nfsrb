@@ -11,11 +11,8 @@ _downloadMirror="http://openbsd-mirror.domain.tld/path/to/openbsd/"
 _openBsdVersion="5.6"
 _openBsdPlatform="platform"
 
-_basePath="/export/openbsd/${_openBsdVersion}/${_openBsdPlatform}/${_hostname}"
+_basePath="/srn/nfs/openbsd/${_openBsdVersion}/${_openBsdPlatform}/${_hostname}"
 
-_additionalSetsToDownload=( base
-                            etc
-                            man )
+_additiona√lSetsToDownload="man"
 
 _kernelToUse="kernel"
-
