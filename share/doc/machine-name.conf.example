@@ -13,6 +13,6 @@ _openBsdPlatform="platform"
 
 _basePath="/srn/nfs/openbsd/${_openBsdVersion}/${_openBsdPlatform}/${_hostname}"
 
-_additiona√lSetsToDownload="man"
+_additionalSetsToDownload="man"
 
 _kernelToUse="kernel"
