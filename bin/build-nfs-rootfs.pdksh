@@ -46,7 +46,7 @@ _openBsdDefaultSetsSince57="base"
 
 usageMsg()
 {
-	cat >&2 <<-USAGE
+	cat 1>&2 <<-USAGE
 	Usage: $_program "configurationFile"
 	USAGE
 	
