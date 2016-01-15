@@ -4,9 +4,7 @@ The tools in this repo allow to create NFS root file systems for OpenBSD from an
 
 ## Prerequisites ##
 
-In addition to a default OpenBSD installation you need:
-
-* bash
+**No** additional prerequisites required for a default OpenBSD installation.
 
 ## How to use ##
 
@@ -52,7 +50,7 @@ In addition to a default OpenBSD installation you need:
 
 (GPLv3)
 
-Copyright (C) 2014 Frank Scheiner
+Copyright (C) 2014-2016 Frank Scheiner
 
 The software is distributed under the terms of the GNU General Public License
 
