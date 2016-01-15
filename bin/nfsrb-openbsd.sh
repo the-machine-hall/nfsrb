@@ -4,7 +4,7 @@
 
 :<<COPYRIGHT
 
-Copyright (C) 2014-2015 Frank Scheiner
+Copyright (C) 2014-2016 Frank Scheiner
 
 The program is distributed under the terms of the GNU General Public License
 
@@ -29,7 +29,7 @@ COPYRIGHT
 
 readonly _program="build-nfs-root"
 
-readonly _version="0.6.0"
+readonly _version="0.7.0"
 
 readonly _exit_usage=64
 
@@ -127,7 +127,7 @@ downloadFile()
 # MAIN
 ################################################################################
 
-if [[ $1 == "" ]]; then
+if [ "EMPTY${1}" = "EMPTY" ]; then
 
 	usageMsg
 	exit $_exit_usage
@@ -135,7 +135,7 @@ fi
 
 _configurationFile="$1"
 
-if [[ -e "$PWD/$_configurationFile" ]]; then
+if [ -e "$PWD/$_configurationFile" ]; then
 
 	_configurationFile="./$_configurationFile"
 fi
@@ -157,7 +157,7 @@ _signatureFile="SHA256.sig"
 _hashFile="SHA256"
 
 # Combine default and additional sets
-if [[ $_openBsdVersionNonDotted -lt 57 ]]; then
+if [ $_openBsdVersionNonDotted -lt 57 ]; then
 
 	_setsToDownload="$_openBsdDefaultSets $_additionalSetsToDownload"
 	
@@ -180,7 +180,7 @@ for _set in $_setsToDownload; do
 
 	# Always download files. Let the downloader detect if file was
 	# downloaded completely.
-	#if [[ ! -e "$_fileName" ]]; then
+	#if [ ! -e "$_fileName" ]; then
 
 		downloadFile "$_file"
 	#fi
@@ -188,7 +188,7 @@ done
 
 # Always download files. Let the downloader detect if file was downloaded
 # completely.
-#if [[ ! -e "$_kernelToUse" ]]; then
+#if [ ! -e "$_kernelToUse" ]; then
 	downloadFile "${_downloadBasePath}/${_kernelToUse}"
 #fi
 
@@ -269,7 +269,7 @@ else
 	
 	echo "Finished."
 	
-	if [[ $_invalidFiles -eq $_true ]]; then
+	if [ $_invalidFiles -eq $_true ]; then
 
 		echo "Detected invalid files. Cannot continue. Please delete invalid file(s) and try again."
 		exit 1
@@ -286,7 +286,7 @@ dd if=/dev/zero of=swap bs=1M seek=128 count=0 2>/dev/null
 echo "Finished."
 
 mkdir -p "root" && cd "root"
-if [[ $_openBsdVersionNonDotted -lt 57 ]]; then
+if [ $_openBsdVersionNonDotted -lt 57 ]; then
 
 	for _set in $_setsToDownload; do
 
