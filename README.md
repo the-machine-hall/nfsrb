@@ -10,9 +10,11 @@ The tools in this repo allow to create NFS root file systems for OpenBSD from an
 
 1. Create a configuration for NFS rootfs creation process (see [`machine-name.conf.example`] for an example)
 
+[`machine-name.conf.example`]: /share/doc/machine-name.conf.example
+
 2. Start the creation process (you need to be `root`!):
    ```
-   # /path/to/build-nfs-rootfs machine-name.conf
+   # /path/to/nfsrb-openbsd.sh machine-name.conf
    Now downloading files...
    [...]
    Checking validity of files with sha256...
@@ -33,13 +35,15 @@ The tools in this repo allow to create NFS root file systems for OpenBSD from an
    Copying /etc/hosts from host... OK
    Creating /etc/hostname.[...]... OK
    Installing kernel... OK
-   Placing OpenBSD version number in `/[...]/machine-name/root/etc/openbsd_version'... OK
+   Placing OpenBSD version number in `/srv/nfs/machine-name/root/etc/openbsd_version'... OK
    ```
    > **NOTICE:** For target and host OpenBSD versions since 5.5 file validity can be checked with [`signify`]. The builder uses `signify` on OpenBSD 5.5 and greater and `sha256` on OpenBSD 5.4 and smaller.
 
+[`signify`]: http://www.openbsd.org/cgi-bin/man.cgi/OpenBSD-5.5/man1/signify.1?query=signify&manpath=OpenBSD-5.5
+
 3. Precreate OpenSSL/OpenSSH keys for the target system (optional!)
    ```
-   # /root/bin/generate-keys /machine-name/root/
+   # /path/to/gen-keys-openbsd.sh /srv/nfs/machine-name/root/
    Warning: Host OS version is smaller than target OS version. Using available SSH key types of host OS only.
    openssl: generating isakmpd/iked RSA key... OK
    ssh-keygen: generating openssh keys... rsa1 dsa ecdsa rsa OK
@@ -68,6 +72,4 @@ You should have received a [copy] of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 [copy]: /COPYING
-[`machine-name.conf.example`]: /share/doc/machine-name.conf.example
-[`signify`]: http://www.openbsd.org/cgi-bin/man.cgi/OpenBSD-5.5/man1/signify.1?query=signify&manpath=OpenBSD-5.5
 
