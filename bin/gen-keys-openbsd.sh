@@ -5,7 +5,7 @@
 
 :<<COPYRIGHT
 
-Copyright (C) 2014-2015 Frank Scheiner
+Copyright (C) 2014-2016 Frank Scheiner
 
 The program is distributed under the terms of the GNU General Public License
 
@@ -28,14 +28,16 @@ COPYRIGHT
 # DEFINES
 ################################################################################
 
-readonly _program="generate-keys"
+readonly _program="gen-keys-openbsd"
 
-readonly _version="0.3.0"
+readonly _version="0.4.0"
 
 readonly _exit_usage=64
 
 readonly _true=1
 readonly _false=0
+
+__GLOBAL__cwd="$PWD"
 
 ################################################################################
 # FUNCTIONS
@@ -242,28 +244,55 @@ else
 	fi
 fi
 
-echo -n "openssl: generating isakmpd/iked RSA key... "
-if generateOpensslKey "$_rootOfFileSystem"; then
+echo "$_program: Generating keys..."
 
-	echo "OK"
+# GENERATION OF SSL KEY ########################################################
+echo -n "openssl: generating isakmpd/iked RSA key... "
+
+generateOpensslKey "$_rootOfFileSystem"
+_generateOpensslKeyReturned=$?
+
+if [ $_generateOpensslKeyReturned -eq 0 ]; then
+
+	echo "done"
+
+elif [ $_generateOpensslKeyReturned -eq 3 ]; then
+
+	echo "not generated, because already existing"
+
 else
 	echo "failed"
 fi
+################################################################################
 
-
+# GENERATION OF SSH KEYS #######################################################
 echo -n "ssh-keygen: generating openssh keys... "
 
 for _keyType in $( getOpensshKeyTypes "$_openbsdVersionNonDotted" ); do
 
-	if generateOpensshKey "$_keyType" "${_rootOfFileSystem}/etc/ssh/$( getFileNameForKeyType $_keyType )"; then
+	generateOpensshKey "$_rootOfFileSystem" "$_keyType"
+	_generateOpensshKeyReturned=$?
+
+	if [ $_generateOpensshKeyReturned -eq 0 ]; then
 
 		echo -n "${_keyType} "
+
+	elif [ $_generateOpensshKeyReturned -eq 2 ]; then
+
+		# ignore unknown key types
+		echo -n "${_keyType} (not generated, because unknown) "
+
+	elif [ $_generateOpensshKeyReturned -eq 3 ]; then
+
+		# ignore existing keys
+		echo -n "${_keyType} (not generated, because already existing) "
 	else
-		echo -n "${_keyType} failed "
+		echo -n "${_keyType} (failed) "
 	fi
 done
 
-echo "OK"
+echo "done"
+################################################################################
 
 exit
 
