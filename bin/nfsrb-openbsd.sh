@@ -1,6 +1,15 @@
 #!/usr/bin/env sh
 
-# build NFS root file system for OpenBSD (pdksh version)
+# build NFS root file system for OpenBSD ((pdk)sh version)
+#
+# should work on:
+# * Linux with:
+#   * dash as sh
+#   * bash as sh (maybe)
+# * OpenBSD with:
+#   * pdksh as sh
+# * NetBSD with
+#   * posix shell as sh
 
 :<<COPYRIGHT
 
@@ -27,7 +36,7 @@ COPYRIGHT
 # DEFINES
 ################################################################################
 
-readonly _program="build-nfs-root"
+readonly _program="nfsrb-openbsd"
 
 readonly _version="0.7.0"
 
@@ -39,6 +48,8 @@ readonly _false=0
 _openBsdDefaultSets="base etc"
 
 _openBsdDefaultSetsSince57="base"
+
+__GLOBAL__cwd="$PWD"
 
 ################################################################################
 # FUNCTIONS
@@ -197,10 +208,10 @@ fi
 
 . "$_configurationFile"
 
+# TODO:
+# Check at least that needed variables have some content.
 
 _openBsdVersionNonDotted=$( echo "$_openBsdVersion" | tr -d '.' )
-
-echo "_openBsdVersionNonDotted: $_openBsdVersionNonDotted"
 
 # Minimum OpenBSD version with signify support for downloads
 _minimumOpenBsdVersionNonDotted="55"
