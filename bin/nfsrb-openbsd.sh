@@ -259,7 +259,7 @@ if test $_openBsdVersionNonDotted -ge $_minimumOpenBsdVersionNonDotted && \
 
 	downloadFile "${_downloadBasePath}/${_signatureFile}"
 
-	_invalidFiles=$false
+	_invalidFiles=$_false
 
 	echo "$_program: Checking validity of files with signify..."
 	for _set in $_setsToDownload; do
@@ -298,7 +298,7 @@ if test $_openBsdVersionNonDotted -ge $_minimumOpenBsdVersionNonDotted && \
 else
 	downloadFile "${_downloadBasePath}/${_hashFile}"
 	
-	_invalidFiles=$false
+	_invalidFiles=$_false
 	
 	echo "$_program: Checking validity of files with SHA256 hashes..."
 	for _set in $_setsToDownload; do
