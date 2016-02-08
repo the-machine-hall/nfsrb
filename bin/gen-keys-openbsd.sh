@@ -194,35 +194,52 @@ getFileNameForKeyType()
 # MAIN
 ################################################################################
 
-if [[ $1 == "" ]]; then
+if [ "EMPTY${1}" = "EMPTY" ]; then
+
 	usageMsg
 	exit $_exit_usage
 fi
 
 _rootOfFileSystem="$1"
 
-if [[ ! -d "$_rootOfFileSystem" ]]; then
+if [ ! -d "$_rootOfFileSystem" ]; then
 
-	echo "\"$_rootOfFileSystem\" is not a directory. Exiting."
+	echo "$_program: \"$_rootOfFileSystem\" is not a directory. Exiting."
 	exit 1
 	
-elif [[ ! -d "$_rootOfFileSystem/etc" ]]; then
+elif [ ! -d "$_rootOfFileSystem/etc" ]; then
 
-	echo "No \"etc\" directory found in \"$_rootOfFileSystem\". Please create a file system first. Exiting."
+	echo "$_program: No \"etc\" directory found in \"$_rootOfFileSystem\". Please create a file system first. Exiting."
 	exit 1
 else
 	_openbsdVersionTarget=$( cat "$_rootOfFileSystem/etc/openbsd_version" )
-	_openbsdVersionNonDottedTarget=$( echo "$_openbsdVersionTarget"  | tr -d '.' ) # "55"
+	_openbsdVersionTargetNonDotted=$( echo "$_openbsdVersionTarget"  | tr -d '.' ) # "5.5" => "55"
 	
-	_openbsdVersionHost=$( uname -r )
-	_openbsdVersionNonDottedHost=$( echo "$_openbsdVersionHost" | tr -d '.' )
-	
-	if [[ $_openbsdVersionNonDottedHost -lt $_openbsdVersionNonDottedTarget ]]; then
-		_openbsdVersionNonDotted=$_openbsdVersionNonDottedHost
-		echo "Warning: Host OS version is smaller than target OS version. Using available SSH key types of host OS only."
+	if [ $( uname -s ) = "OpenBSD" ]; then
+
+		_openbsdVersionHost=$( uname -r )
+		_openbsdVersionHostNonDotted=$( echo "$_openbsdVersionHost" | tr -d '.' )
+		_openbsdVersionNonDotted=$_openbsdVersionTargetNonDotted
+
+		if [ $_openbsdVersionHostNonDotted -lt $_openbsdVersionTargetNonDotted ]; then
+
+			echo "$_program: Warning: Host OS version is smaller than target OS version. Generating available SSH key types of host OS only."
+		fi
+
+	elif [ $( uname -s ) = "NetBSD" ]; then
+
+		_openbsdVersionNonDotted=$_openbsdVersionTargetNonDotted
+		echo "$_program: Warning: Host OS is NetBSD. Generating available SSH key types of host OS only."
+
+	elif [ $( uname -s ) = "Linux" ]; then
+
+		_openbsdVersionNonDotted=$_openbsdVersionTargetNonDotted
+		echo "$_program: Warning: Host OS is GNU/Linux. Generating available SSH key types of host OS only."
+
 	else
-		_openbsdVersionNonDotted=$_openbsdVersionNonDottedTarget
-	fi		
+		echo "$_program: ERROR: Unknown OS in use. Please generate keys manually if your OS allows this." 1>&2
+		exit 1
+	fi
 fi
 
 echo -n "openssl: generating isakmpd/iked RSA key... "
