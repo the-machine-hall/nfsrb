@@ -44,7 +44,7 @@ readonly _false=0
 usageMsg()
 {
 	cat 1>&2 <<-USAGE
-	Usage: $_program "rootOfFileSystem"
+		Usage: $_program "rootOfFileSystem"
 	USAGE
 	
 	return
@@ -162,23 +162,23 @@ getFileNameForKeyType()
 	
 	local _fileName=""
 	
-	if [[ "$_keyType" == "rsa1" ]]; then
+	if [ "$_keyType" = "rsa1" ]; then
 	
 		_fileName="ssh_host_key"
 
-	elif [[ "$_keyType" == "dsa" ]]; then
+	elif [ "$_keyType" = "dsa" ]; then
 
 		_fileName="ssh_host_dsa_key"
 
-	elif [[ "$_keyType" == "ecdsa" ]]; then
+	elif [ "$_keyType" = "ecdsa" ]; then
 
 		_fileName="ssh_host_ecdsa_key"
 
-	elif [[ "$_keyType" == "ed25519" ]]; then
+	elif [ "$_keyType" = "ed25519" ]; then
 
 		_fileName="ssh_host_ed25519_key"
 
-	elif [[ "$_keyType" == "rsa" ]]; then
+	elif [ "$_keyType" = "rsa" ]; then
 
 		_fileName="ssh_host_rsa_key"
 	else
@@ -186,7 +186,6 @@ getFileNameForKeyType()
 	fi
 	
 	echo "$_fileName"
-	
 	return 0
 }
 
