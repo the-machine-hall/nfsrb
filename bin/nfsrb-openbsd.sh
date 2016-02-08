@@ -397,9 +397,14 @@ mkdir -p swap && chmod 0700 swap
 
 echo -n "$_program: Creating devices... "
 cd "dev"
-./MAKEDEV all
-echo "OK"
+if [ $( uname -s ) = "OpenBSD" ]; then
 
+	./MAKEDEV all
+	echo "OK"
+else
+	mknod console c 0 0 && chmod og-r console
+	echo "$_program: Only created \`/dev/console' as we're not running under OpenBSD. Please use root FS in single user mode and create devices manually (\`mount -uw /; cd /dev; ./MAKEDEV all\`) before going multi-user."
+fi
 
 cd "$_rootOfFileSystem"
 
