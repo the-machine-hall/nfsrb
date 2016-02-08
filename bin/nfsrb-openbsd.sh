@@ -430,6 +430,19 @@ cat > etc/hosts <<-EOF
 	${_ipAddress} ${_hostname}.${_domain} ${_hostname}
 EOF
 echo "OK"
+
+
+echo -n "$_program: Creating /etc/mygate... "
+echo "$_gatewayAddress" > etc/mygate
+echo "OK"
+
+
+echo -n "$_program: Creating /etc/resolv.conf... "
+cat > etc/resolv.conf <<-EOF
+	nameserver ${_dnsServerAddress}
+	domain ${_domain}
+	search ${_domain}
+EOF
 echo "OK"
 
 
