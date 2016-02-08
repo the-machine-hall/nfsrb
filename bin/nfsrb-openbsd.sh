@@ -422,8 +422,14 @@ echo "${_hostname}.${_domain}" > etc/myname
 echo "OK"
 
 
-echo -n "Copying /etc/hosts from host... "
-cp /etc/hosts etc/hosts
+echo -n "$_program: Creating /etc/hosts... "
+cat > etc/hosts <<-EOF
+	127.0.0.1       localhost
+	::1             localhost6
+
+	${_ipAddress} ${_hostname}.${_domain} ${_hostname}
+EOF
+echo "OK"
 echo "OK"
 
 
