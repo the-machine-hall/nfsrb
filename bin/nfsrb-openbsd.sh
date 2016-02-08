@@ -47,7 +47,7 @@ _openBsdDefaultSetsSince57="base"
 usageMsg()
 {
 	cat 1>&2 <<-USAGE
-	Usage: $_program "configurationFile"
+		Usage: $_program "configurationFile"
 	USAGE
 	
 	return
@@ -170,7 +170,7 @@ _downloadBasePath="${_downloadMirror}/${_openBsdVersion}/${_openBsdPlatform}"
 # Save files in the super directory
 mkdir -p "$_basePath" && cd "$_basePath/.."
 
-echo "Now downloading files..."
+echo "$_program: Now downloading files..."
 
 for _set in $_setsToDownload; do
 
@@ -203,7 +203,7 @@ if test $_openBsdVersionNonDotted -ge $_minimumOpenBsdVersionNonDotted && \
 
 	_invalidFiles=$false
 
-	echo "Checking validity of files with signify..."
+	echo "$_program: Checking validity of files with signify..."
 	for _set in $_setsToDownload; do
 	
 		_fileName="${_set}${_openBsdVersionNonDotted}.tgz"
@@ -230,9 +230,9 @@ if test $_openBsdVersionNonDotted -ge $_minimumOpenBsdVersionNonDotted && \
 	
 	echo "Finished."
 	
-	if [[ $_invalidFiles -eq $_true ]]; then
+	if [ $_invalidFiles -eq $_true ]; then
 
-		echo "Detected invalid files. Cannot continue. Please delete invalid file(s) and try again."
+		echo "$_program: Detected invalid files. Cannot continue. Please delete invalid file(s) and try again."
 		exit 1
 	fi
 
@@ -242,7 +242,7 @@ else
 	
 	_invalidFiles=$false
 	
-	echo "Checking validity of files with sha256..."
+	echo "$_program: Checking validity of files with SHA256 hashes..."
 	for _set in $_setsToDownload; do
 	
 		_fileName="${_set}${_openBsdVersionNonDotted}.tgz"
@@ -271,7 +271,7 @@ else
 	
 	if [ $_invalidFiles -eq $_true ]; then
 
-		echo "Detected invalid files. Cannot continue. Please delete invalid file(s) and try again."
+		echo "$_program: Detected invalid files. Cannot continue. Please delete invalid file(s) and try again."
 		exit 1
 	fi
 fi
@@ -281,9 +281,7 @@ cd "$_basePath"
 
 #echo "=> $PWD"
 
-echo "Creating swap file"
-dd if=/dev/zero of=swap bs=1M seek=128 count=0 2>/dev/null
-echo "Finished."
+echo -n "$_program: Creating swap file... "
 
 mkdir -p "root" && cd "root"
 if [ $_openBsdVersionNonDotted -lt 57 ]; then
@@ -312,14 +310,14 @@ _rootOfFileSystem="$PWD/root"
 
 cd "$_rootOfFileSystem"
 
-echo "Now configuring file system... "
+echo "$_program: Now configuring file system... "
 
 # Configure file system
 mkdir -p swap
 
 
-echo -n "Creating devices... "
 
+echo -n "$_program: Creating devices... "
 cd "dev"
 ./MAKEDEV all
 echo "OK"
@@ -328,7 +326,7 @@ echo "OK"
 cd "$_rootOfFileSystem"
 
 
-echo -n "Creating /etc/fstab... "
+echo -n "$_program: Creating /etc/fstab... "
 cat > etc/fstab <<EOF
 ${_nfsServerAddress}:${_basePath}/root / nfs rw,tcp,nfsv3 0 0
 ${_nfsServerAddress}:${_basePath}/swap none swap sw,nfsmntpt=/swap,tcp
@@ -336,7 +334,7 @@ EOF
 echo "OK"
 
 
-echo -n "Creating /etc/myname... "
+echo -n "$_program: Creating /etc/myname... "
 echo "${_hostname}.${_domain}" > etc/myname
 echo "OK"
 
@@ -346,21 +344,22 @@ cp /etc/hosts etc/hosts
 echo "OK"
 
 
-echo -n "Creating /etc/hostname.[...]... "
+echo -n "$_program: Creating /etc/hostname.[...]... "
 echo "inet $_ipAddress" > "etc/hostname.${_bootNetworkInterface}"
 chmod 0640 "etc/hostname.${_bootNetworkInterface}"
 echo "OK"
 
 
-echo -n "Installing kernel... "
+echo -n "$_program: Installing kernel... "
 cp ../../${_kernelToUse} .
-if [[ "${_kernelToUse}" != "bsd" ]]; then
+if [ "${_kernelToUse}" != "bsd" ]; then
 	ln -s ${_kernelToUse} bsd
 fi
 echo "OK"
 
-echo -n "Placing OpenBSD version number in \`${_rootOfFileSystem}/etc/openbsd_version'... "
+echo -n "$_program: Placing OpenBSD version number in \`${_rootOfFileSystem}/etc/openbsd_version'... "
 echo "$_openBsdVersion" > "$_rootOfFileSystem/etc/openbsd_version"
 echo "OK"
 
 exit
+
