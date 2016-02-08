@@ -340,6 +340,13 @@ cd "$_basePath"
 #echo "=> $PWD"
 
 echo -n "$_program: Creating swap file... "
+dd if=/dev/zero of=swap bs=1M seek=128 count=0 2>/dev/null && chmod 0600 swap
+if [ $? -eq 0 ]; then
+	echo "OK"
+else
+	echo "ERROR: More details in logfile."
+	exit 1
+fi
 
 mkdir -p "root" && cd "root"
 if [ $_openBsdVersionNonDotted -lt 57 ]; then
@@ -386,9 +393,7 @@ cd "$_rootOfFileSystem"
 echo "$_program: Now configuring file system... "
 
 # Configure file system
-mkdir -p swap
-
-
+mkdir -p swap && chmod 0700 swap
 
 echo -n "$_program: Creating devices... "
 cd "dev"
