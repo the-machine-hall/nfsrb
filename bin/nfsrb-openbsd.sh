@@ -101,23 +101,79 @@ isValidFileForSha256()
 }
 
 
-downloadFileWithFtp()
+downloadFile()
 {
 	local _file="$1"
 
-	ftp -C "$_file"
+	local _ftpReturned=1
+
+	if [ $( uname -s ) = "OpenBSD" ]; then
+
+		ftp -C "$_file"
+		_ftpReturned=$?
+
+		if [ $_ftpReturned -eq 0 -o \
+		     $_ftpReturned -eq 1 ]; then
+
+			# ftp on OpenBSD exits with 1 if a file was already downloaded
+			# completely. Hence let's assume 0 and 1 as sane exit value.
+			true
+		else
+			false
+		fi
+
+	elif [ $( uname -s ) = "NetBSD" ]; then
+
+		ftp "$_file"
+
+	elif [ $( uname -s ) = "Linux" ]; then
+
+		# check if wget is available
+		if which wget 1>/dev/null 2>&1; then
+
+			wget -4 --progress=bar -c "$_file"
+
+		elif which curl 1>/dev/null 2>&1; then
+
+			# Actually curl should continue to download a partially downloaded file
+			# with `-C -`, but during my tests it didn't. even when using `-o` and
+			# the file name of the partially downloaded file.
+			curl -O -C - "$_file"
+		else
+			echo "$_program: Neither wget nor curl found." 1>&2
+			return 1
+		fi
+	fi
 
 	return
 }
 
 
-downloadFile()
+untarFile()
 {
-	if which wget 1>/dev/null 2>&1; then
+	local _tarFile="$1"
 
-		downloadFileWithWget $@
+	local _tarCommand=""
+
+	if [ $( uname -s ) = "OpenBSD" -o \
+	     $( uname -s ) = "NetBSD" ]; then
+
+		_tarCommand="tar -xzpf $_tarFile"
+
+	elif [ $( uname -s ) = "Linux" ]; then
+
+		_tarCommand="tar --numeric-owner -xzpf $_tarFile"
+	fi
+
+	echo "$_tarCommand" > "$__GLOBAL__cwd/untarFile.log"
+	$_tarCommand 1>>"$__GLOBAL__cwd/untarFile.log" 2>&1
+
+	if [ $? -eq 0 ]; then
+
+		rm "$__GLOBAL__cwd/untarFile.log"
+		return 0
 	else
-		downloadFileWithFtp $@
+		return 1
 	fi
 }
 
@@ -177,21 +233,24 @@ for _set in $_setsToDownload; do
 
 	_file="${_downloadBasePath}/${_fileName}"
 
-	# Always download files. Let the downloader detect if file was
-	# downloaded completely.
-	#if [ ! -e "$_fileName" ]; then
+	downloadFile "$_file"
 
-		downloadFile "$_file"
-	#fi
+	if [ ! $? -eq 0 ]; then
+
+		echo -e "$_program: Download failed for "$_file". Cannot continue! Exiting." 1>&2
+		exit 1
+	fi
 done
 
-# Always download files. Let the downloader detect if file was downloaded
-# completely.
-#if [ ! -e "$_kernelToUse" ]; then
-	downloadFile "${_downloadBasePath}/${_kernelToUse}"
-#fi
+downloadFile "${_downloadBasePath}/${_kernelToUse}"
 
-echo "Finished."
+if [ ! $? -eq 0 ]; then
+
+	echo -e "$_program: Download failed for "${_downloadBasePath}/${_kernelToUse}". Cannot continue! Exiting." 1>&2
+	exit 1
+fi
+
+echo "$_program: Finished."
 
 # Perform validity and signature test only, if files are from OpenBSD 5.5 or
 # newer and if the signify tool is available.
@@ -287,20 +346,35 @@ if [ $_openBsdVersionNonDotted -lt 57 ]; then
 
 	for _set in $_setsToDownload; do
 
-		echo -n "Now extracting ${_set}${_openBsdVersionNonDotted}.tgz... "
-		tar -xzpf ../../${_set}${_openBsdVersionNonDotted}.tgz
-		echo "OK"
+		echo -n "$_program: Now extracting ${_set}${_openBsdVersionNonDotted}.tgz... "
+		if untarFile ../../${_set}${_openBsdVersionNonDotted}.tgz; then
+
+			echo "OK"
+		else
+			echo "ERROR. More details in \`"$__GLOBAL__cwd/untarFile.log"'."
+			exit 1
+		fi
 	done
 else
 	for _set in $_setsToDownload; do
 
-                echo -n "Now extracting ${_set}${_openBsdVersionNonDotted}.tgz... "
-                tar -xzpf ../../${_set}${_openBsdVersionNonDotted}.tgz
-                echo "OK"
+                echo -n "$_program: Now extracting ${_set}${_openBsdVersionNonDotted}.tgz... "
+                if untarFile ../../${_set}${_openBsdVersionNonDotted}.tgz; then
+
+	                echo "OK"
+		else
+			echo "ERROR. More details in \`"$__GLOBAL__cwd/untarFile.log"'."
+			exit 1
+		fi
         done
-	echo -n "Now extracting builtin etc.tgz... "
-	tar -xzpf ./usr/share/sysmerge/etc.tgz
-	echo "OK"
+	echo -n "$_program: Now extracting builtin etc.tgz... "
+	if untarFile ./usr/share/sysmerge/etc.tgz; then
+
+		echo "OK"
+	else
+		echo "ERROR. More details in \`"$__GLOBAL__cwd/untarFile.log"'."
+		exit 1
+	fi
 fi
 cd ..
 
