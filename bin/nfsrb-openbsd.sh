@@ -74,31 +74,30 @@ isValidFileForSha256()
 {
 	local _hashFile="$1"
 	local _file="$2"
-	
+
 	local _tempHashFile=$( mktemp )
+	local _validityCheckReturned=1
 	
 	grep "($_file)" "$_hashFile" > "$_tempHashFile"
 	
-	if sha256 -c "$_tempHashFile" 1>/dev/null 2>&1; then
+	if [ $( uname -s ) = "OpenBSD" ]; then
 
-		rm "$_tempHashFile"
+		sha256 -c "$_tempHashFile" 1>/dev/null 2>&1
 
-		return 0
-	else
-		rm "$_tempHashFile"
+	elif [ $( uname -s ) = "NetBSD" ]; then
 
-		return 1
-	fi		
-}
+		cksum -c -a SHA256 "$_tempHashFile" 1>/dev/null 2>&1
 
+	elif [ $( uname -s ) = "Linux" ]; then
 
-downloadFileWithWget()
-{
-	local _file="$1"
-	
-	wget -4 --progress=bar -c "$_file"
-	
-	return
+		sha256sum -c "$_tempHashFile" 1>/dev/null 2>&1
+	fi
+
+	_validityCheckReturned=$?
+
+	rm "$_tempHashFile"
+
+	return $_validityCheckReturned
 }
 
 
