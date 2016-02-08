@@ -405,9 +405,9 @@ cd "$_rootOfFileSystem"
 
 
 echo -n "$_program: Creating /etc/fstab... "
-cat > etc/fstab <<EOF
-${_nfsServerAddress}:${_basePath}/root / nfs rw,tcp,nfsv3 0 0
-${_nfsServerAddress}:${_basePath}/swap none swap sw,nfsmntpt=/swap,tcp
+cat > etc/fstab <<-EOF
+	${_nfsServerAddress}:${_basePath}/root / nfs rw,tcp,nfsv3 0 0
+	${_nfsServerAddress}:${_basePath}/swap none swap sw,nfsmntpt=/swap,tcp
 EOF
 echo "OK"
 
