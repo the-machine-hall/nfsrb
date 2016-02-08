@@ -58,13 +58,19 @@ generateOpensslKey()
 	
 	umask 0077
 
-	if openssl genrsa -out ${_baseDir}/etc/isakmpd/private/local.key 2048 \
+	# Don't overwrite existing key files
+	if [ -s "${_baseDir}/etc/isakmpd/private/local.key" ]; then
+
+		return 3
+	fi
+
+	if openssl genrsa -out "${_baseDir}/etc/isakmpd/private/local.key" 2048 \
 	                  1>/dev/null 2>&1; then
 	    
-		openssl rsa -out ${_baseDir}/etc/isakmpd/local.pub \
-		            -in ${_baseDir}/etc/isakmpd/private/local.key \
+		openssl rsa -out "${_baseDir}/etc/isakmpd/local.pub" \
+		            -in "${_baseDir}/etc/isakmpd/private/local.key" \
 		            -pubout 1>/dev/null 2>&1		
-		return 0
+		return
 	else
 		return 1
 	fi
@@ -73,16 +79,31 @@ generateOpensslKey()
 
 generateOpensshKey()
 {
-	local _keyType="$1"
-	local _keyFile="$2"
+	local _baseDir="$1"
+	local _keyType="$2"
+
+	local _keyFile=$( getFileNameForKeyType $_keyType )
 	
 	umask 0077
 	
-	if ssh-keygen -q -t "$_keyType" -N "" -f "$_keyFile"; then
+	# Don't overwrite existing key files
+	if [ -s "${_baseDir}/etc/ssh/$_keyFile" ]; then
 
+		return 3
+	fi
+
+	if ssh-keygen -q -t "$_keyType" -N "" -f "${_baseDir}/etc/ssh/$_keyFile" 1>"$__GLOBAL__cwd/_sshKeygenOutput" 2>&1; then
+
+		chmod og+r "${_baseDir}/etc/ssh/${_keyFile}.pub"
+		rm "$__GLOBAL__cwd/_sshKeygenOutput"
 		return 0
 	else
-		return 1
+		if grep "unknown key type" "$__GLOBAL__cwd/_sshKeygenOutput" 1>/dev/null 2>&1; then
+
+			return 2
+		else
+			return 1
+		fi
 	fi
 }
 
@@ -97,23 +118,35 @@ getOpensshKeyTypes()
 
 	local _opensshKeyTypes56="$_opensshKeyTypes55"
 
-	local _opensshKeyTypes57="$_opensshKeyTypes56"
+	local _opensshKeyTypes57="$_opensshKeyTypes55"
 
-	if [[ $_openbsdVersionNonDotted -eq 54 ]]; then
-	
+	local _opensshKeyTypes58="dsa ecdsa ed25519 rsa"
+
+	local _opensshKeyTypes59="$_opensshKeyTypes58"
+
+	if [ $_openbsdVersionNonDotted -eq 54 ]; then
+
 		_opensshKeyTypes="$_opensshKeyTypes54"
-		
-	elif [[ $_openbsdVersionNonDotted -eq 55 ]]; then
 	
+	elif [ $_openbsdVersionNonDotted -eq 55 ]; then
+
 		_opensshKeyTypes="$_opensshKeyTypes55"
 
-	elif [[ $_openbsdVersionNonDotted -eq 56 ]]; then
-	
+	elif [ $_openbsdVersionNonDotted -eq 56 ]; then
+
 		_opensshKeyTypes="$_opensshKeyTypes56"
 
-	elif [[ $_openbsdVersionNonDotted -eq 57 ]]; then
-	
+	elif [ $_openbsdVersionNonDotted -eq 57 ]; then
+
 		_opensshKeyTypes="$_opensshKeyTypes57"
+
+	elif [ $_openbsdVersionNonDotted -eq 58 ]; then
+
+		_opensshKeyTypes="$_opensshKeyTypes58"
+
+	elif [ $_openbsdVersionNonDotted -eq 59 ]; then
+
+		_opensshKeyTypes="$_opensshKeyTypes59"
 	else
 		return 1
 	fi
