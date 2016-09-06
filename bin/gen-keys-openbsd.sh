@@ -30,7 +30,7 @@ COPYRIGHT
 
 readonly _program="gen-keys-openbsd"
 
-readonly _version="0.4.0"
+readonly _version="0.5.0"
 
 readonly _exit_usage=64
 
@@ -48,7 +48,7 @@ usageMsg()
 	cat 1>&2 <<-USAGE
 		Usage: $_program "rootOfFileSystem"
 	USAGE
-	
+
 	return
 }
 
@@ -57,7 +57,7 @@ usageMsg()
 generateOpensslKey()
 {
 	local _baseDir="$1"
-	
+
 	umask 0077
 
 	# Don't overwrite existing key files
@@ -66,12 +66,11 @@ generateOpensslKey()
 		return 3
 	fi
 
-	if openssl genrsa -out "${_baseDir}/etc/isakmpd/private/local.key" 2048 \
-	                  1>/dev/null 2>&1; then
-	    
+	if openssl genrsa -out "${_baseDir}/etc/isakmpd/private/local.key" 2048 1>/dev/null 2>&1; then
+
 		openssl rsa -out "${_baseDir}/etc/isakmpd/local.pub" \
 		            -in "${_baseDir}/etc/isakmpd/private/local.key" \
-		            -pubout 1>/dev/null 2>&1		
+		            -pubout 1>/dev/null 2>&1
 		return
 	else
 		return 1
@@ -85,9 +84,9 @@ generateOpensshKey()
 	local _keyType="$2"
 
 	local _keyFile=$( getFileNameForKeyType $_keyType )
-	
+
 	umask 0077
-	
+
 	# Don't overwrite existing key files
 	if [ -s "${_baseDir}/etc/ssh/$_keyFile" ]; then
 
@@ -113,9 +112,11 @@ generateOpensshKey()
 getOpensshKeyTypes()
 {
 	local _openbsdVersionNonDotted="$1"
-	
+
+	local _opensshKeyTypes48="rsa1 dsa rsa"
+
 	local _opensshKeyTypes54="rsa1 dsa ecdsa rsa"
-                              
+
 	local _opensshKeyTypes55="rsa1 dsa ecdsa ed25519 rsa"
 
 	local _opensshKeyTypes56="$_opensshKeyTypes55"
@@ -126,10 +127,14 @@ getOpensshKeyTypes()
 
 	local _opensshKeyTypes59="$_opensshKeyTypes58"
 
-	if [ $_openbsdVersionNonDotted -eq 54 ]; then
+	if [ $_openbsdVersionNonDotted -le 48 ]; then
+
+		_opensshKeyTypes="$_opensshKeyTypes48"
+
+	elif [ $_openbsdVersionNonDotted -eg 54 ]; then
 
 		_opensshKeyTypes="$_opensshKeyTypes54"
-	
+
 	elif [ $_openbsdVersionNonDotted -eq 55 ]; then
 
 		_opensshKeyTypes="$_opensshKeyTypes55"
@@ -146,13 +151,13 @@ getOpensshKeyTypes()
 
 		_opensshKeyTypes="$_opensshKeyTypes58"
 
-	elif [ $_openbsdVersionNonDotted -eq 59 ]; then
+	elif [ $_openbsdVersionNonDotted -ge 59 ]; then
 
 		_opensshKeyTypes="$_opensshKeyTypes59"
 	else
 		return 1
 	fi
-	
+
 	echo "$_opensshKeyTypes"
 	return 0
 }
@@ -161,11 +166,11 @@ getOpensshKeyTypes()
 getFileNameForKeyType()
 {
 	local _keyType="$1"
-	
+
 	local _fileName=""
-	
+
 	if [ "$_keyType" = "rsa1" ]; then
-	
+
 		_fileName="ssh_host_key"
 
 	elif [ "$_keyType" = "dsa" ]; then
@@ -186,7 +191,7 @@ getFileNameForKeyType()
 	else
 		return 1
 	fi
-	
+
 	echo "$_fileName"
 	return 0
 }
@@ -208,15 +213,16 @@ if [ ! -d "$_rootOfFileSystem" ]; then
 
 	echo "$_program: \"$_rootOfFileSystem\" is not a directory. Exiting."
 	exit 1
-	
+
 elif [ ! -d "$_rootOfFileSystem/etc" ]; then
 
 	echo "$_program: No \"etc\" directory found in \"$_rootOfFileSystem\". Please create a file system first. Exiting."
 	exit 1
 else
-	_openbsdVersionTarget=$( cat "$_rootOfFileSystem/etc/openbsd_version" )
+	# Format of "/etc/openbsd_version" is "<VERSION> (<BUILDDATE>)"
+	_openbsdVersionTarget=$( cat "$_rootOfFileSystem/etc/openbsd_version" | cut -d ' ' -f 1 )
 	_openbsdVersionTargetNonDotted=$( echo "$_openbsdVersionTarget"  | tr -d '.' ) # "5.5" => "55"
-	
+
 	if [ $( uname -s ) = "OpenBSD" ]; then
 
 		_openbsdVersionHost=$( uname -r )
