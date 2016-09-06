@@ -3,16 +3,30 @@
 _hostname="mymachine"
 _domain="mydomain"
 _ipAddress="127.0.0.1"
-
-_nfsServerAddress="127.0.0.1"
 _bootNetworkInterface="iface0"
+# Specify the swap file size in MiB (number only!)
+_swapFileSize=128
+
+_dnsServerAddress="127.0.0.1"
+_gatewayAddress="127.0.0.1"
+_nfsServerAddress="127.0.0.1"
 
 _downloadMirror="http://openbsd-mirror.domain.tld/path/to/openbsd/"
-_openBsdVersion="5.6"
+# Use either dotted OpenBSD version number (e.g. "6.0") or "snapshots"
+_openBsdVersion="6.0"
 _openBsdPlatform="platform"
 
-_basePath="/srv/nfs/openbsd/${_openBsdVersion}/${_openBsdPlatform}/${_hostname}"
+# Specify the path prefix where files should be downloaded to and root
+# file systems are built. The full path for this machine will be added
+# by nfsrb and look like this:
+#
+# "${_basePathPrefix}/openbsd/${_openBsdVersion}/${_openBsdPlatform}/${_hostname}"
+_basePathPrefix="/srv/nfs"
 
+# Only specify sets additional to the default sets "base" and "etc" and
+# separate by " "
 _additionalSetsToDownload="man"
 
-_kernelToUse="kernel"
+# Specify the name of the desired kernel, e.g. "bsd", "bsd.mp", etc.
+_kernelToUse="bsd"
+
