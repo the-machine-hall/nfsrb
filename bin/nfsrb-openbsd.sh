@@ -38,16 +38,33 @@ COPYRIGHT
 
 readonly _program="nfsrb-openbsd"
 
-readonly _version="0.7.0"
+readonly _version="0.8.0"
 
 readonly _exit_usage=64
 
 readonly _true=1
 readonly _false=0
 
+# Prior to OpenBSD 5.7, the etc set is separate from the base set
 _openBsdDefaultSets="base etc"
 
+# Since OpenBSD 5.7, the etc set is included in the base set
 _openBsdDefaultSetsSince57="base"
+
+# Minimum OpenBSD version with signify support for downloads
+_signifySupportSince="55"
+
+# Minimum OpenBSD version which was supplied with a hashfile
+_hashFileSince="46"
+
+# Signature file name
+_signatureFile="SHA256.sig"
+
+# File containing the build date
+_buildinfoFile="BUILDINFO"
+
+# File containing the hashes
+_hashFile="SHA256"
 
 __GLOBAL__cwd="$PWD"
 
@@ -60,7 +77,7 @@ usageMsg()
 	cat 1>&2 <<-USAGE
 		Usage: $_program "configurationFile"
 	USAGE
-	
+
 	return
 }
 
@@ -70,10 +87,9 @@ isValidFileForSignify()
 	local _openBsdVersionNonDotted="$1"
 	local _signatureFile="$2"
 	local _file="$3"
-	
-	if signify -C -p "/etc/signify/openbsd-${_openBsdVersionNonDotted}-base.pub" \
-	           -x "$_signatureFile" "$_file" 1>/dev/null 2>&1; then
-	
+
+	if signify -C -p "/etc/signify/openbsd-${_openBsdVersionNonDotted}-base.pub" -x "$_signatureFile" "$_file" 1>/dev/null 2>&1; then
+
 		return 0
 	else
 		return 1
@@ -88,9 +104,9 @@ isValidFileForSha256()
 
 	local _tempHashFile=$( mktemp )
 	local _validityCheckReturned=1
-	
+
 	grep "($_file)" "$_hashFile" > "$_tempHashFile"
-	
+
 	if [ $( uname -s ) = "OpenBSD" ]; then
 
 		sha256 -c "$_tempHashFile" 1>/dev/null 2>&1
@@ -189,6 +205,62 @@ untarFile()
 }
 
 
+getVersionFromSignatureFile()
+{
+	local _signatureFile="$1"
+
+	local _openBsdVersionNonDotted=""
+
+	_openBsdVersionNonDotted=$( grep '(base' < "$_signatureFile" | sed -e 's/^.* (//' -e 's/) .*$//' | sed -e 's/^base//' -e 's/.tgz//' )
+
+	if [ $? -eq 0 ]; then
+
+		echo $_openBsdVersionNonDotted
+		return 0
+	else
+		return 1
+	fi
+}
+
+
+getBuildDateFromBuildinfoFile()
+{
+	local _buildinfoFile="$1"
+
+	local _buildDate=""
+
+	_buildDate=$( head -1 "$_buildinfoFile" | cut -d ' ' -f 3 )
+
+	if [ $? -eq 0 ]; then
+
+		echo $_buildDate
+		return 0
+	else
+		return 1
+	fi
+}
+
+
+nonDottedToDotted()
+{
+	local _openBsdVersionNonDotted="$1"
+
+	local _openBsdVersion=""
+
+	local _length=${#_openBsdVersionNonDotted}
+
+	_openBsdVersion=$( echo $_openBsdVersionNonDotted | cut -c 1-$(( _length - 1 )) ).$( echo $_openBsdVersionNonDotted | cut -c $_length)
+
+	if [ $? -eq 0 ]; then
+
+		echo $_openBsdVersion
+		return 0
+	else
+		return 1
+	fi
+}
+
+
 ################################################################################
 # MAIN
 ################################################################################
@@ -211,32 +283,110 @@ fi
 # TODO:
 # Check at least that needed variables have some content.
 
-_openBsdVersionNonDotted=$( echo "$_openBsdVersion" | tr -d '.' )
+_downloadBasePath="${_downloadMirror}/${_openBsdVersion}/${_openBsdPlatform}"
 
-# Minimum OpenBSD version with signify support for downloads
-_minimumOpenBsdVersionNonDotted="55"
+echo "$_program: Now downloading files..."
 
-# Signature file name
-_signatureFile="SHA256.sig"
+# For snapshots create per build date directory structures
+if [ $_openBsdVersion = "snapshots" ]; then
 
-# File containing the hashes
-_hashFile="SHA256"
+	# Get build date
+	_file="${_downloadBasePath}/${_buildinfoFile}"
+
+	if ! downloadFile "$_file"; then
+
+		echo -e "$_program: Download failed for "$_file". Cannot continue! Exiting." 1>&2
+		exit 1
+	fi
+
+	_buildDate=$( getBuildDateFromBuildinfoFile "./${_buildinfoFile}" )
+
+	if [ $? -ne 0 ]; then
+
+		echo -e "$_program: Couldn't get build date from \`$PWD/${_buildinfoFile}'. Cannot continue! Exiting." 1>&2
+		exit 1
+	fi
+	_basePath="${_basePathPrefix}/openbsd/${_openBsdVersion}/${_buildDate}/${_openBsdPlatform}/${_hostname}"
+else
+	# Get build date
+	_file="${_downloadBasePath}/${_buildinfoFile}"
+
+	# Older OpenBSD versions do not have the "BUILDINFO" file, so just detemine the buildinfo if
+	# this file could be downloaded successfully.
+	if downloadFile "$_file"; then
+
+		_buildDate=$( getBuildDateFromBuildinfoFile "./${_buildinfoFile}" )
+	fi
+
+	_basePath="${_basePathPrefix}/openbsd/${_openBsdVersion}/${_openBsdPlatform}/${_hostname}"
+fi
+
+# Save files in the super directory
+mkdir -p "$_basePath" && cd "$_basePath/.."
+
+if [ $_openBsdVersion = "snapshots" ]; then
+
+	mv "${__GLOBAL__cwd}/${_buildinfoFile}" .
+
+	# currently - February 2016 - snapshot versions are > OpenBSD 5.5, so
+	# always have a signature file
+	_file="${_downloadBasePath}/${_signatureFile}"
+
+	if ! downloadFile "$_file"; then
+
+		echo -e "$_program: Download failed for "$_file". Cannot continue! Exiting." 1>&2
+		exit 1
+	fi
+
+	_openBsdVersionNonDotted=$( getVersionFromSignatureFile "$_signatureFile" )
+
+	_file="${_downloadBasePath}/${_hashFile}"
+
+	if ! downloadFile "$_file"; then
+
+		echo -e "$_program: Download failed for "$_file". Cannot continue! Exiting." 1>&2
+		exit 1
+	fi
+else
+	_openBsdVersionNonDotted=$( echo "$_openBsdVersion" | tr -d '.' )
+
+	if [ $_openBsdVersionNonDotted -ge $_signifySupportSince ]; then
+
+		_file="${_downloadBasePath}/${_signatureFile}"
+
+		if ! downloadFile "$_file"; then
+
+			echo -e "$_program: Download failed for "$_file". Cannot continue! Exiting." 1>&2
+			exit 1
+		fi
+
+		_file="${_downloadBasePath}/${_hashFile}"
+
+		if ! downloadFile "$_file"; then
+
+			echo -e "$_program: Download failed for "$_file". Cannot continue! Exiting." 1>&2
+			exit 1
+		fi
+	elif [ $_openBsdVersionNonDotted -ge $_hashFileSince ]; then
+		_file="${_downloadBasePath}/${_hashFile}"
+
+		if ! downloadFile "$_file"; then
+
+			echo -e "$_program: Download failed for "$_file". Cannot continue! Exiting." 1>&2
+			exit 1
+		fi
+	else
+		:
+	fi
+fi
 
 # Combine default and additional sets
 if [ $_openBsdVersionNonDotted -lt 57 ]; then
 
 	_setsToDownload="$_openBsdDefaultSets $_additionalSetsToDownload"
-	
 else
 	_setsToDownload="$_openBsdDefaultSetsSince57 $_additionalSetsToDownload"
 fi
-
-_downloadBasePath="${_downloadMirror}/${_openBsdVersion}/${_openBsdPlatform}"
-
-# Save files in the super directory
-mkdir -p "$_basePath" && cd "$_basePath/.."
-
-echo "$_program: Now downloading files..."
 
 for _set in $_setsToDownload; do
 
@@ -244,18 +394,14 @@ for _set in $_setsToDownload; do
 
 	_file="${_downloadBasePath}/${_fileName}"
 
-	downloadFile "$_file"
-
-	if [ ! $? -eq 0 ]; then
+	if ! downloadFile "$_file"; then
 
 		echo -e "$_program: Download failed for "$_file". Cannot continue! Exiting." 1>&2
 		exit 1
 	fi
 done
 
-downloadFile "${_downloadBasePath}/${_kernelToUse}"
-
-if [ ! $? -eq 0 ]; then
+if ! downloadFile "${_downloadBasePath}/${_kernelToUse}"; then
 
 	echo -e "$_program: Download failed for "${_downloadBasePath}/${_kernelToUse}". Cannot continue! Exiting." 1>&2
 	exit 1
@@ -265,20 +411,19 @@ echo "$_program: Finished."
 
 # Perform validity and signature test only, if files are from OpenBSD 5.5 or
 # newer and if the signify tool is available.
-if test $_openBsdVersionNonDotted -ge $_minimumOpenBsdVersionNonDotted && \
+_invalidFiles=$_false
+
+if [ $_openBsdVersionNonDotted -ge $_signifySupportSince -a \
+     -e "/etc/signify/openbsd-$_openBsdVersionNonDotted-base.pub" ] && \
    which signify 1>/dev/null 2>&1; then
-
-	downloadFile "${_downloadBasePath}/${_signatureFile}"
-
-	_invalidFiles=$_false
 
 	echo "$_program: Checking validity of files with signify..."
 	for _set in $_setsToDownload; do
-	
+
 		_fileName="${_set}${_openBsdVersionNonDotted}.tgz"
 
 		_file="${_downloadBasePath}/${_fileName}"
-		
+
 		# check validity
 		if ! isValidFileForSignify "$_openBsdVersionNonDotted" "$_signatureFile" "$_fileName"; then
 
@@ -288,7 +433,7 @@ if test $_openBsdVersionNonDotted -ge $_minimumOpenBsdVersionNonDotted && \
 			echo "\`${_fileName}' is valid."
 		fi
 	done
-	
+
 	if ! isValidFileForSignify "$_openBsdVersionNonDotted" "$_signatureFile" "$_kernelToUse"; then
 
 		echo "\`${_kernelToUse}' is invalid."
@@ -296,9 +441,9 @@ if test $_openBsdVersionNonDotted -ge $_minimumOpenBsdVersionNonDotted && \
 	else
 		echo "\`${_kernelToUse}' is valid."
 	fi
-	
+
 	echo "Finished."
-	
+
 	if [ $_invalidFiles -eq $_true ]; then
 
 		echo "$_program: Detected invalid files. Cannot continue. Please delete invalid file(s) and try again."
@@ -306,18 +451,15 @@ if test $_openBsdVersionNonDotted -ge $_minimumOpenBsdVersionNonDotted && \
 	fi
 
 # Just do validity test
-else
-	downloadFile "${_downloadBasePath}/${_hashFile}"
-	
-	_invalidFiles=$_false
-	
+elif [ $_openBsdVersionNonDotted -ge $_hashFileSince ]; then
+	echo "$_program: Signify public keys missing for OpenBSD $_openBsdVersion or not running under OpenBSD."
 	echo "$_program: Checking validity of files with SHA256 hashes..."
 	for _set in $_setsToDownload; do
-	
+
 		_fileName="${_set}${_openBsdVersionNonDotted}.tgz"
 
 		_file="${_downloadBasePath}/${_fileName}"
-		
+
 		# check validity
 		if ! isValidFileForSha256 "$_hashFile" "$_fileName"; then
 
@@ -327,7 +469,7 @@ else
 			echo "\`${_fileName}' is valid."
 		fi
 	done
-	
+
 	if ! isValidFileForSha256 "$_hashFile" "$_kernelToUse"; then
 
 		echo "\`${_kernelToUse}' is invalid."
@@ -335,14 +477,16 @@ else
 	else
 		echo "\`${_kernelToUse}' is valid."
 	fi
-	
+
 	echo "Finished."
-	
+
 	if [ $_invalidFiles -eq $_true ]; then
 
 		echo "$_program: Detected invalid files. Cannot continue. Please delete invalid file(s) and try again."
 		exit 1
 	fi
+else
+	:
 fi
 
 # Return to base path
@@ -351,15 +495,18 @@ cd "$_basePath"
 #echo "=> $PWD"
 
 echo -n "$_program: Creating swap file... "
-dd if=/dev/zero of=swap bs=1M seek=128 count=0 2>/dev/null && chmod 0600 swap
+dd if=/dev/zero of=swap bs=1M seek=$_swapFileSize count=0 1>"$__GLOBAL__cwd/swapFileCreation.log" 2>&1 && chmod 0600 swap
 if [ $? -eq 0 ]; then
+
+	rm "$__GLOBAL__cwd/swapFileCreation.log"
 	echo "OK"
 else
-	echo "ERROR: More details in logfile."
+	echo "ERROR. More details in \`$__GLOBAL__cwd/swapFileCreation.log'."
 	exit 1
 fi
 
 mkdir -p "root" && cd "root"
+
 if [ $_openBsdVersionNonDotted -lt 57 ]; then
 
 	for _set in $_setsToDownload; do
@@ -369,10 +516,11 @@ if [ $_openBsdVersionNonDotted -lt 57 ]; then
 
 			echo "OK"
 		else
-			echo "ERROR. More details in \`"$__GLOBAL__cwd/untarFile.log"'."
+			echo "ERROR. More details in \`$__GLOBAL__cwd/untarFile.log'."
 			exit 1
 		fi
 	done
+
 else
 	for _set in $_setsToDownload; do
 
@@ -381,21 +529,30 @@ else
 
 	                echo "OK"
 		else
-			echo "ERROR. More details in \`"$__GLOBAL__cwd/untarFile.log"'."
+			echo "ERROR. More details in \`$__GLOBAL__cwd/untarFile.log'."
 			exit 1
 		fi
         done
 	echo -n "$_program: Now extracting builtin etc.tgz... "
-	if untarFile ./usr/share/sysmerge/etc.tgz; then
+
+	# the position of the builtin etc set changes/d with OpenBSD 5.9
+	if [ $_openBsdVersionNonDotted -lt 59 ]; then
+
+		_builtinEtcSet="./usr/share/sysmerge/etc.tgz"
+	else
+		_builtinEtcSet="./var/sysmerge/etc.tgz"
+	fi
+
+	if untarFile "$_builtinEtcSet"; then
 
 		echo "OK"
 	else
-		echo "ERROR. More details in \`"$__GLOBAL__cwd/untarFile.log"'."
+		echo "ERROR. More details in \`$__GLOBAL__cwd/untarFile.log'."
 		exit 1
 	fi
 fi
-cd ..
 
+cd ..
 
 _rootOfFileSystem="$PWD/root"
 
@@ -414,13 +571,13 @@ if [ $( uname -s ) = "OpenBSD" ]; then
 	echo "OK"
 else
 	mknod console c 0 0 && chmod og-r console
-	echo "$_program: Only created \`/dev/console' as we're not running under OpenBSD. Please use root FS in single user mode and create devices manually (\`mount -uw /; cd /dev; ./MAKEDEV all\`) before going multi-user."
+	echo "$_program: Only created \`/dev/console' as we're not running under OpenBSD. Please use root FS in single user mode and create devices manually (\`mount -uw / && cd /dev && ./MAKEDEV all\`) before going multi-user."
 fi
 
 cd "$_rootOfFileSystem"
 
 
-echo -n "$_program: Creating /etc/fstab... "
+echo -n "$_program: Creating \`/etc/fstab'... "
 cat > etc/fstab <<-EOF
 	${_nfsServerAddress}:${_basePath}/root / nfs rw,tcp,nfsv3 0 0
 	${_nfsServerAddress}:${_basePath}/swap none swap sw,nfsmntpt=/swap,tcp
@@ -428,12 +585,12 @@ EOF
 echo "OK"
 
 
-echo -n "$_program: Creating /etc/myname... "
+echo -n "$_program: Creating \`/etc/myname'... "
 echo "${_hostname}.${_domain}" > etc/myname
 echo "OK"
 
 
-echo -n "$_program: Creating /etc/hosts... "
+echo -n "$_program: Creating \`/etc/hosts'... "
 cat > etc/hosts <<-EOF
 	127.0.0.1       localhost
 	::1             localhost6
@@ -443,12 +600,12 @@ EOF
 echo "OK"
 
 
-echo -n "$_program: Creating /etc/mygate... "
+echo -n "$_program: Creating \`/etc/mygate'... "
 echo "$_gatewayAddress" > etc/mygate
 echo "OK"
 
 
-echo -n "$_program: Creating /etc/resolv.conf... "
+echo -n "$_program: Creating \`/etc/resolv.conf'... "
 cat > etc/resolv.conf <<-EOF
 	nameserver ${_dnsServerAddress}
 	domain ${_domain}
@@ -456,11 +613,17 @@ cat > etc/resolv.conf <<-EOF
 EOF
 echo "OK"
 
-
-echo -n "$_program: Creating /etc/hostname.[...]... "
-echo "inet $_ipAddress" > "etc/hostname.${_bootNetworkInterface}"
-chmod 0640 "etc/hostname.${_bootNetworkInterface}"
-echo "OK"
+# Do not create this file on the OpenBSD platform "i386", as there the
+# existence of this file prevented a successful network boot during all
+# my tests
+if [ "$_openBsdPlatform" != "i386" ]; then
+	echo -n "$_program: Creating \`/etc/hostname.${_bootNetworkInterface}'... "
+	echo "inet $_ipAddress" > "etc/hostname.${_bootNetworkInterface}"
+	chmod 0640 "etc/hostname.${_bootNetworkInterface}"
+	echo "OK"
+else
+	echo "$_program: \`/etc/hostname.${_bootNetworkInterface}' not created because platform is \"i386\""
+fi
 
 
 echo -n "$_program: Installing kernel... "
@@ -470,8 +633,18 @@ if [ "${_kernelToUse}" != "bsd" ]; then
 fi
 echo "OK"
 
-echo -n "$_program: Placing OpenBSD version number in \`${_rootOfFileSystem}/etc/openbsd_version'... "
-echo "$_openBsdVersion" > "$_rootOfFileSystem/etc/openbsd_version"
+# This is needed for gen-keys-openbsd to be able to generate the correct
+# keys depending on the version of the target OS. In addition its also
+# useful to quickly determine the version of the target OS if it is not
+# running and if it is not stored in a directory hierarchy that shows
+# the version.
+echo -n "$_program: Placing OpenBSD version number and build date in \`${_rootOfFileSystem}/etc/openbsd_version'... "
+echo "$( nonDottedToDotted $_openBsdVersionNonDotted ) ($_buildDate)" > "$_rootOfFileSystem/etc/openbsd_version"
+echo "OK"
+
+# Place info about the used nfsrb version in "/etc/nfsrb"
+echo -n "$_program: Placing nfsrb version in \`${_rootOfFileSystem}/etc/nfsrb_version'... "
+echo "$_version" > "${_rootOfFileSystem}/etc/nfsrb_version"
 echo "OK"
 
 exit
