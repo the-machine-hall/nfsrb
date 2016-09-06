@@ -15,40 +15,44 @@ The tools in this repo allow to create NFS root file systems for OpenBSD from an
 2. Start the creation process (you need to be `root`!):
    ```
    # /path/to/nfsrb-openbsd.sh machine-name.conf
-   Now downloading files...
+   nfsrb-openbsd: Now downloading files...
    [...]
-   Checking validity of files with sha256...
-   `base56.tgz' is valid.
-   `etc56.tgz' is valid.
-   `man56.tgz' is valid.
-   `bsd.mp' is valid.
+   nfsrb-openbsd: Finished.
+   nfsrb-openbsd: Signify public keys missing for OpenBSD 6.0 or not running under OpenBSD.
+   nfsrb-openbsd: Checking validity of files with SHA256 hashes...
+   `base60.tgz' is valid.
+   `man60.tgz' is valid.
+   `bsd' is valid.
    Finished.
-   Creating swap file
-   Finished.
-   Now extracting base56.tgz... OK
-   Now extracting etc56.tgz... OK
-   Now extracting man56.tgz... OK
-   Now configuring file system... 
-   Creating devices... OK
-   Creating /etc/fstab... OK
-   Creating /etc/myname... OK
-   Copying /etc/hosts from host... OK
-   Creating /etc/hostname.[...]... OK
-   Installing kernel... OK
-   Placing OpenBSD version number in `/srv/nfs/machine-name/root/etc/openbsd_version'... OK
+   nfsrb-openbsd: Creating swap file... OK
+   nfsrb-openbsd: Now extracting base60.tgz... OK
+   nfsrb-openbsd: Now extracting man60.tgz... OK
+   nfsrb-openbsd: Now extracting builtin etc.tgz... OK
+   nfsrb-openbsd: Now configuring file system... 
+   nfsrb-openbsd: Creating devices... nfsrb-openbsd: Only created `/dev/console' as we're not running under OpenBSD. Please use root FS in single user mode and create devices manually (`mount -uw / && cd /dev && ./MAKEDEV all`) before going multi-user.
+   nfsrb-openbsd: Creating `/etc/fstab'... OK
+   nfsrb-openbsd: Creating `/etc/myname'... OK
+   nfsrb-openbsd: Creating `/etc/hosts'... OK
+   nfsrb-openbsd: Creating `/etc/mygate'... OK
+   nfsrb-openbsd: Creating `/etc/resolv.conf'... OK
+   nfsrb-openbsd: `/etc/hostname.fxp0' not created because platform is "i386"
+   nfsrb-openbsd: Installing kernel... OK
+   nfsrb-openbsd: Placing OpenBSD version number and build date in `/srv/nfs/openbsd/6.0/i386/machine-name/root/etc/openbsd_version'... OK
+   nfsrb-openbsd: Placing nfsrb version in `/srv/nfs/openbsd/6.0/i386/machine-name/root/etc/nfsrb_version'... OK
    ```
-   > **NOTICE:** For target and host OpenBSD versions since 5.5 file validity can be checked with [`signify`]. The builder uses `signify` on OpenBSD 5.5 and greater and `sha256` on OpenBSD 5.4 and smaller.
+   > **NOTICE:** For target and host OpenBSD versions since 5.5 file validity can be checked with [`signify(1)`]. The builder uses `signify` on OpenBSD 5.5 and greater and `sha256` on OpenBSD 5.4 and smaller.
 
-[`signify`]: http://www.openbsd.org/cgi-bin/man.cgi/OpenBSD-5.5/man1/signify.1?query=signify&manpath=OpenBSD-5.5
+[`signify(1)`]: http://www.openbsd.org/cgi-bin/man.cgi/OpenBSD-5.5/man1/signify.1?query=signify&manpath=OpenBSD-5.5
 
 3. Precreate OpenSSL/OpenSSH keys for the target system (optional!)
    ```
    # /path/to/gen-keys-openbsd.sh /srv/nfs/machine-name/root/
-   Warning: Host OS version is smaller than target OS version. Using available SSH key types of host OS only.
-   openssl: generating isakmpd/iked RSA key... OK
-   ssh-keygen: generating openssh keys... rsa1 dsa ecdsa rsa OK
+   gen-keys-openbsd: Warning: Host OS is GNU/Linux. Generating available SSH key types of host OS only.
+   gen-keys-openbsd: Generating keys...
+   openssl: generating isakmpd/iked RSA key... done
+   ssh-keygen: generating openssh keys... dsa ecdsa ed25519 rsa done
    ```
-   > **NOTICE:** The key generation on the host comes in handy for slow target machines (e.g. SUN SPARCstation 10) which need a considerable amount of time to create SSH keys. If your host OS is older than the target OS, you can still create the SSH key types that are available on your host OS. On first run the target machine will create the missing keys.
+   > **NOTICE:** The key generation on the host comes in handy for slow target machines (e.g. SUN SPARCstation 10 or SPARCclassic) which need a considerable amount of time to create SSH keys. If your host OS is older than the target OS, you can still create the SSH key types that are available on your host OS. On first run the target machine will create the missing keys.
 
 ## License ##
 
