@@ -1,6 +1,6 @@
 # NFS root file system builder #
 
-The tools in this repo allow to create NFS root file systems for OpenBSD from an OpenBSD host automatically.
+The tools in this repo allow to create NFS root file systems for OpenBSD from OpenBSD, NetBSD or GNU/Linux automatically.
 
 ## Prerequisites ##
 
@@ -40,7 +40,7 @@ The tools in this repo allow to create NFS root file systems for OpenBSD from an
    nfsrb-openbsd: Placing OpenBSD version number and build date in `/srv/nfs/openbsd/6.0/i386/machine-name/root/etc/openbsd_version'... OK
    nfsrb-openbsd: Placing nfsrb version in `/srv/nfs/openbsd/6.0/i386/machine-name/root/etc/nfsrb_version'... OK
    ```
-   > **NOTICE:** For target and host OpenBSD versions since 5.5 file validity can be checked with [`signify(1)`]. The builder uses `signify` on OpenBSD 5.5 and greater and `sha256` on OpenBSD 5.4 and smaller.
+   > **NOTICE:** For target and host OpenBSD versions since 5.5 file validity can be checked with [`signify(1)`]. The builder uses `signify(1)` on OpenBSD 5.5 and greater and `sha256(1)` on OpenBSD 5.4 and smaller. On other OSes only the hash values are checked.
 
 [`signify(1)`]: http://www.openbsd.org/cgi-bin/man.cgi/OpenBSD-5.5/man1/signify.1?query=signify&manpath=OpenBSD-5.5
 
@@ -52,7 +52,7 @@ The tools in this repo allow to create NFS root file systems for OpenBSD from an
    openssl: generating isakmpd/iked RSA key... done
    ssh-keygen: generating openssh keys... dsa ecdsa ed25519 rsa done
    ```
-   > **NOTICE:** The key generation on the host comes in handy for slow target machines (e.g. SUN SPARCstation 10 or SPARCclassic) which need a considerable amount of time to create SSH keys. If your host OS is older than the target OS, you can still create the SSH key types that are available on your host OS. On first run the target machine will create the missing keys.
+   > **NOTICE:** The key generation on the host comes in handy for slow target machines (e.g. SUN SPARCstation 10 or SPARCclassic) which need a considerable amount of time to create SSH keys. If your host OS is older than the target OS, or if it is NetBSD or GNU/Linux, you can still create the SSH key types that are available on your host OS. On first run the target machine will create the missing keys.
 
 ## License ##
 
