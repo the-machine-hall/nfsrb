@@ -131,7 +131,7 @@ getOpensshKeyTypes()
 
 		_opensshKeyTypes="$_opensshKeyTypes48"
 
-	elif [ $_openbsdVersionNonDotted -eg 54 ]; then
+	elif [ $_openbsdVersionNonDotted -eq 54 ]; then
 
 		_opensshKeyTypes="$_opensshKeyTypes54"
 
