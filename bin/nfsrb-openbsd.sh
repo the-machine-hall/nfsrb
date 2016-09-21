@@ -192,7 +192,7 @@ untarFile()
 		_tarCommand="tar --numeric-owner -xzpf $_tarFile"
 	fi
 
-	echo "$_tarCommand" > "$__GLOBAL__cwd/untarFile.log"
+	echo "$_tarCommand" >"$__GLOBAL__cwd/untarFile.log"
 	$_tarCommand 1>>"$__GLOBAL__cwd/untarFile.log" 2>&1
 
 	if [ $? -eq 0 ]; then
@@ -202,6 +202,31 @@ untarFile()
 	else
 		return 1
 	fi
+}
+
+
+createSwapFile()
+{
+	local _swapFile="$1"
+	local _swapFileSize="$2"
+
+	local _blockSize="1M"
+
+	if [ $( uname -s ) = "OpenBSD" -o \
+	     $( uname -s ) = "Linux" ]; then
+
+		_ddCommand="dd if=/dev/zero of="$_swapFile" bs=1M seek="$_swapFileSize" count=0"
+
+	# NetBSD uses "m" for Mebibyte and cannot create sparse files AFAICS
+	elif [ $( uname -s ) = "NetBSD" ]; then
+
+		_ddCommand="dd if=/dev/zero of="$_swapFile" bs=1m seek="$(( $_swapFileSize - 1 ))" count=1"
+	fi
+
+	echo "$_ddCommand" >"$__GLOBAL__cwd/swapFileCreation.log"
+	$_ddCommand 1>>"$__GLOBAL__cwd/swapFileCreation.log" 2>&1 && chmod 0600 swap
+
+	return
 }
 
 
@@ -495,7 +520,9 @@ cd "$_basePath"
 #echo "=> $PWD"
 
 echo -n "$_program: Creating swap file... "
-dd if=/dev/zero of=swap bs=1M seek=$_swapFileSize count=0 1>"$__GLOBAL__cwd/swapFileCreation.log" 2>&1 && chmod 0600 swap
+
+createSwapFile "$_basePath/swap" "$_swapFileSize"
+
 if [ $? -eq 0 ]; then
 
 	rm "$__GLOBAL__cwd/swapFileCreation.log"
