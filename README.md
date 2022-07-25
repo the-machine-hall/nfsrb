@@ -1,3 +1,7 @@
+This version is obsolete. Please use [nfsrb2](https://github.com/the-machine-hall/nfsrb2).
+
+****
+
 # NFS root file system builder #
 
 The tools in this repo allow to create NFS root file systems for OpenBSD from OpenBSD, NetBSD or GNU/Linux automatically.
